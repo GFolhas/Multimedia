@@ -1,4 +1,6 @@
+from contextlib import redirect_stderr
 from PIL import Image
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
@@ -27,7 +29,7 @@ def colorMapping(color1, color2):
     linGray = np.repeat(linGray, repeats, axis=1).reshape(sample_number, repeats).T
     linGrayImg = np.zeros((repeats, sample_number, 3))
 
-    # rgb
+    # RGB
     linGrayImg[:, :, 0] = linGray # red
     linGrayImg[:, :, 1] = linGray # green
     linGrayImg[:, :, 2] = linGray # blue
@@ -58,45 +60,52 @@ def imageColorMapping(images, colorMap, color1, color2):
     plt.axis('off')
     plt.show()
 
+
 def rgbColorMapping(images):
     colors = ["red", "green", "blue"]
     vals = [(1,0,0), (0,1,0), (0,0,1)]
     image = plt.imread(images + ".bmp")
+    data = []
+    paths = []
 
     for i in range(len(colors)):
         map = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), vals[i]], N=256)
+        data.append(image[:,:,i])
+        path = "imagens/RGB/" + images.split("/")[1] + colors[i].capitalize() + ".png"
+        paths.append(path)
         plt.figure()
-        plt.title("Remapped Image (" + colors[i].capitalize() + ")")
-        plt.imshow(image[:, :, 0], map)#o parâmetro colormap só funciona se a imagem não for RGB
+        #plt.title("Remapped Image (" + colors[i].capitalize() + ")")
+        plt.imshow(image[:, :, i], map) # o parâmetro colormap só funciona se a imagem não for RGB
         plt.axis('off')
-        plt.savefig("./imagens/RGB/" + images.split("/")[1] + colors[i].capitalize() + ".png")
+        plt.savefig("./" + path, bbox_inches='tight', pad_inches = 0)
         plt.show()
+    
+    return data, paths
+    
 
 
-def reverseRGBColorMapping(images):
-    """
-    # Honestamente nao faço puto de ideia, nao encontro nada na net e n estou bem a ver como fzr isto a n ser criar um novo colormap à mão atraves da soma dos valores hex de cada mapa anterior
 
+def reverseRGBColorMapping(paths, data):
     colors = ["red", "green", "blue"]
-    vals = [(1,0,0), (0,1,0), (0,0,1)]
-    image = plt.imread(images + ".bmp")
-    colormaps = []
+    vals = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    array = []
 
-    for i in range(len(colors)):
-        map = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), vals[i]], N=85)
-        colormaps.append(map)
+    print(paths[0])
 
-    c = np.vstack((colormaps[0], colormaps[1], colormaps[2]))
-    print(c)
-    print("POG")
-    #map = clr.LinearSegmentedColormap.from_list('cmap', c, N = 256)
-    plt.figure()
-    #plt.title("Remapped Image (" + colors[i].capitalize() + ")")
-    plt.imshow(image[:, :, 0], c)#o parâmetro colormap só funciona se a imagem não for RGB
-    plt.axis('off')
-    #plt.savefig("./imagens/RGB/" + images.split("/")[1] + colors[i].capitalize() + ".png")
-    plt.show()
-    """
+    for i in range(len(paths)):
+        image = plt.imread(paths[i])
+
+        val = image[:,:,i]
+        array.append(val)
+        #r = image[:,:,0] # lista valores RED para cada pixel 
+        #g = image[:,:,1] # lista valores GREEN para cada pixel 
+        #b = image[:,:,2] # lista valores BLUE para cada pixel 
+
+        #print(int(image[:,:,0][0][0] * 256)) # 1º pixel blue -> 231
+
+    # saiu do ciclo -> array tem a info de todos os pixeis, falta agora mudar a cor de cada um para uma combinaçao dos 3
+
+    
 
 def main():
 
@@ -115,11 +124,20 @@ def main():
 
     ''' exercise 3 '''
 
-    colors = ["purple", "gold"]
-    cm = colorMapping(colors[0], colors[1])
-    imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
-    rgbColorMapping("imagens/barn_mountains")
-    #reverseRGBColorMapping("imagens/barn_mountains")  # needs to be done
+    #colors = ["purple", "gold"]
+    #cm = colorMapping(colors[0], colors[1])
+    #imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
+    info, paths = rgbColorMapping("imagens/barn_mountains")
+    reverseRGBColorMapping(paths, info)  # needs to be done
+    """path = "imagens/RGB/barn_mountainsRed.png"
+    image = plt.imread(path)
+    print("FOUND AT " + path)
+    plt.figure()
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()"""
+
+
 
 
 
