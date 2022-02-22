@@ -1,4 +1,3 @@
-from contextlib import redirect_stderr
 from PIL import Image
 from matplotlib import cm
 import matplotlib.pyplot as plt
@@ -61,10 +60,36 @@ def imageColorMapping(images, colorMap, color1, color2):
     plt.show()
 
 
-def rgbColorMapping(images):
+def joinRGB(image, x, y, c, array):
+    vector = np.zeros((x,y,c))
+    vector[:,:,0] = array[0]
+    vector[:,:,1] = array[1]
+    vector[:,:,2] = array[2]    
+
+    print(vector.shape)
+    print(image.shape)  
+    plt.figure()
+    plt.title("RGB Components Added")
+    plt.imshow(vector.astype('uint8'))
+    plt.axis('off')
+    plt.show()
+    print(np.array_equal(image, vector))
+
+
+def separateRGB(images):
     colors = ["red", "green", "blue"]
     vals = [(1,0,0), (0,1,0), (0,0,1)]
     image = plt.imread(images + ".bmp")
+
+    #print(image)
+    red = image[:,:,0]
+    green = image[:,:,1]
+    blue = image[:,:,2]
+
+    x, y, c = image.shape
+    #print(image.shape)
+
+    array = [red, green, blue]
     data = []
     paths = []
 
@@ -74,38 +99,62 @@ def rgbColorMapping(images):
         path = "imagens/RGB/" + images.split("/")[1] + colors[i].capitalize() + ".png"
         paths.append(path)
         plt.figure()
-        #plt.title("Remapped Image (" + colors[i].capitalize() + ")")
-        plt.imshow(image[:, :, i], map) # o parâmetro colormap só funciona se a imagem não for RGB
+        plt.title("Remapped Image (" + colors[i].capitalize() + ")")
+        plt.imshow(array[i], map) # o parâmetro colormap só funciona se a imagem não for RGB
         plt.axis('off')
         plt.savefig("./" + path, bbox_inches='tight', pad_inches = 0)
         plt.show()
     
-    return data, paths
+
+    joinRGB(image, x, y, c, array)
     
+  
 
 
-
-def reverseRGBColorMapping(paths, data):
-    colors = ["red", "green", "blue"]
-    vals = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    array = []
-
-    print(paths[0])
-
-    for i in range(len(paths)):
-        image = plt.imread(paths[i])
-
-        val = image[:,:,i]
-        array.append(val)
-        #r = image[:,:,0] # lista valores RED para cada pixel 
-        #g = image[:,:,1] # lista valores GREEN para cada pixel 
-        #b = image[:,:,2] # lista valores BLUE para cada pixel 
-
-        #print(int(image[:,:,0][0][0] * 256)) # 1º pixel blue -> 231
-
-    # saiu do ciclo -> array tem a info de todos os pixeis, falta agora mudar a cor de cada um para uma combinaçao dos 3
-
+def padding(image):
+    img = plt.imread(image)
     
+    p1 = img[:, :, 0]
+    p2 = img[:, :, 1]
+    p3 = img[:, :, 2]
+    
+    r, c = p1.shape
+    org_r, org_c = p1.shape
+    while (r%16) != 0:
+        p1 = np.vstack([p1, p1[-1, :]])
+        p2 = np.vstack([p2, p2[-1, :]])
+        p3 = np.vstack([p3, p3[-1, :]])
+        r, c = p1.shape
+    
+    while (c%16) != 0:
+        p1 = np.hstack([p1, p1[:, -1]])
+        p2 = np.hstack([p2, p2[:, -1]])
+        p3 = np.hstack([p2, p2[:, -1]])
+        r, c = p1.shape
+    
+    paddedImg = np.zeros((r, c, 3))
+    paddedImg[:, :, 0] = p1
+    paddedImg[:, :, 1] = p2
+    paddedImg[:, :, 2] = p3
+    print("dim = ", paddedImg.shape)
+    plt.figure()
+    plt.title("padded")
+    plt.imshow(paddedImg.astype('uint8'))
+    plt.axis('off')
+    plt.show()
+    unpad(img, org_r, org_c)
+    
+    
+def unpad(img, r, c):
+    unpaddedImg = img[:r, :c, :]
+    print("dim = ", unpaddedImg.shape)
+    plt.figure()
+    plt.title("unpadded")
+    plt.imshow(unpaddedImg)
+    plt.axis('off')
+    plt.show()
+
+
 
 def main():
 
@@ -124,19 +173,22 @@ def main():
 
     ''' exercise 3 '''
 
-    #colors = ["purple", "gold"]
-    #cm = colorMapping(colors[0], colors[1])
-    #imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
-    info, paths = rgbColorMapping("imagens/barn_mountains")
-    reverseRGBColorMapping(paths, info)  # needs to be done
-    """path = "imagens/RGB/barn_mountainsRed.png"
-    image = plt.imread(path)
-    print("FOUND AT " + path)
-    plt.figure()
-    plt.imshow(image)
-    plt.axis('off')
-    plt.show()"""
+    '''3.1 & 3.2'''
+    colors = ["purple", "gold"]
+    cm = colorMapping(colors[0], colors[1])
 
+    '''3.3'''
+    imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
+
+
+    '''3.4'''
+
+    separateRGB("imagens/peppers")
+
+
+    ''' exercise 4 '''
+
+    padding("imagens/barn_mountains.bmp")
 
 
 
