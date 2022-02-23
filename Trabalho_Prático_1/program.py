@@ -159,22 +159,23 @@ def unpad(img, r, c):
 
 
 
-def RGBYtoYCrCb(imgarray, viewSeparate=None):
+def RGBYtoYCrCb(imgarray):
     image = plt.imread(imgarray + ".bmp")
-    ycbcr = image.dot(Tc)
+    ycbcr = np.dot(image, Tc)
     ycbcr[:,:,[1,2]] += 128
+    #ycbcr = ycbcr.round()
+
+    ycbcr[ycbcr > 255] = 255
+    ycbcr[ycbcr < 0] = 0
     plt.figure()
-    plt.imshow(ycbcr[:,:,:].astype('uint8'))
+    plt.title("YCbCr from RBG Image")
+    plt.imshow(ycbcr[:,:,:].astype('uint8'), "gray")
     plt.show()
-    if(viewSeparate):
-        for i in range(3):
-            plt.figure()
-        plt.imshow(ycbcr[:,:,i].astype('uint8'))
-        plt.show()
     inv = ycbcr
     inv[:,:,[1,2]] -= 128
     rgb = inv.dot(TcInverted)
     plt.figure()
+    plt.title("RGB from YCbCr Image")
     plt.imshow(rgb.astype('uint8'))
     plt.show()
 
