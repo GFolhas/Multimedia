@@ -5,6 +5,10 @@ import matplotlib.colors as clr
 import numpy as np
 
 
+
+Tc = np.array([[0.299, 0.587, 0.114],[-0.168736, -0.331264, 0.5],[0.5, -0.418688, -0.081312]])
+TcInverted = np.linalg.inv(Tc)
+
 """
 def encoder(image, YCbCr, compressionRate):
     return encodedImg
@@ -61,6 +65,7 @@ def imageColorMapping(images, colorMap, color1, color2):
 
 
 def joinRGB(image, x, y, c, array):
+    
     vector = np.zeros((x,y,c))
     vector[:,:,0] = array[0]
     vector[:,:,1] = array[1]
@@ -87,15 +92,13 @@ def separateRGB(images):
     blue = image[:,:,2]
 
     x, y, c = image.shape
-    #print(image.shape)
+    #print(image.shape) -> (384, 512, 3)
 
     array = [red, green, blue]
-    data = []
     paths = []
 
     for i in range(len(colors)):
         map = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), vals[i]], N=256)
-        data.append(image[:,:,i])
         path = "imagens/RGB/" + images.split("/")[1] + colors[i].capitalize() + ".png"
         paths.append(path)
         plt.figure()
@@ -156,6 +159,29 @@ def unpad(img, r, c):
 
 
 
+def RGBYtoYCrCb(imgarray, viewSeparate=None):
+    image = plt.imread(imgarray + ".bmp")
+    ycbcr = image.dot(Tc)
+    ycbcr[:,:,[1,2]] += 128
+    plt.figure()
+    plt.imshow(ycbcr[:,:,:].astype('uint8'))
+    plt.show()
+    if(viewSeparate):
+        for i in range(3):
+            plt.figure()
+        plt.imshow(ycbcr[:,:,i].astype('uint8'))
+        plt.show()
+    inv = ycbcr
+    inv[:,:,[1,2]] -= 128
+    rgb = inv.dot(TcInverted)
+    plt.figure()
+    plt.imshow(rgb.astype('uint8'))
+    plt.show()
+
+
+    
+
+
 def main():
 
     plt.close('all')
@@ -174,23 +200,26 @@ def main():
     ''' exercise 3 '''
 
     '''3.1 & 3.2'''
-    colors = ["purple", "gold"]
-    cm = colorMapping(colors[0], colors[1])
+    #colors = ["purple", "gold"]
+    #cm = colorMapping(colors[0], colors[1])
 
     '''3.3'''
-    imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
+    #imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
 
 
     '''3.4'''
 
-    separateRGB("imagens/peppers")
+    #separateRGB("imagens/peppers")
 
 
     ''' exercise 4 '''
 
-    padding("imagens/barn_mountains.bmp")
+    #padding("imagens/barn_mountains.bmp")
 
 
+    ''' exercise 5 '''
+
+    RGBYtoYCrCb("imagens/barn_mountains")
 
 
 
