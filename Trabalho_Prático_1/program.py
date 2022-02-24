@@ -5,17 +5,16 @@ import matplotlib.colors as clr
 import numpy as np
 
 
-
 Tc = np.array([[0.299, 0.587, 0.114],[-0.168736, -0.331264, 0.5],[0.5, -0.418688, -0.081312]])
 TcInverted = np.linalg.inv(Tc)
 
-"""
-def encoder(image, YCbCr, compressionRate):
-    return encodedImg
 
-def decoder(image, conversionParams):
-    return decodedImg
-"""
+def encoder():
+    pass
+
+def decoder():
+    pass
+
 
 def qualityChange(images, value):
     image = Image.open(images + ".bmp")
@@ -37,11 +36,11 @@ def colorMapping(color1, color2):
     linGrayImg[:, :, 1] = linGray # green
     linGrayImg[:, :, 2] = linGray # blue
 
-    plt.figure()
-    plt.title("Original Grey Scale")
-    plt.imshow(linGrayImg)
-    plt.axis('off')
-    plt.show()
+    #plt.figure()
+    #plt.title("Original Grey Scale")
+    #plt.imshow(linGrayImg)
+    #plt.axis('off')
+    #plt.show()
 
     colorlist=[color1, color2]
     colorMap = clr.LinearSegmentedColormap.from_list('cmap', colorlist, N=256) # gera um colormap linear suave (name, array de cores, niveis de quantizaçao rgb)
@@ -145,7 +144,7 @@ def padding(image):
     plt.imshow(paddedImg.astype('uint8'))
     plt.axis('off')
     plt.show()
-    unpad(img, org_r, org_c)
+    unpad(paddedImg, org_r, org_c)
     
     
 def unpad(img, r, c):
@@ -153,7 +152,7 @@ def unpad(img, r, c):
     print("dim = ", unpaddedImg.shape)
     plt.figure()
     plt.title("unpadded")
-    plt.imshow(unpaddedImg)
+    plt.imshow(unpaddedImg.astype('uint8'))
     plt.axis('off')
     plt.show()
 
@@ -161,19 +160,28 @@ def unpad(img, r, c):
 
 def RGBYtoYCrCb(imgarray):
     image = plt.imread(imgarray + ".bmp")
+    cmaps = ["gray", "cubehelix", "viridis"]
     ycbcr = np.dot(image, Tc)
     ycbcr[:,:,[1,2]] += 128
     #ycbcr = ycbcr.round()
 
     ycbcr[ycbcr > 255] = 255
     ycbcr[ycbcr < 0] = 0
+
     plt.figure()
     plt.title("YCbCr from RBG Image")
-    plt.imshow(ycbcr[:,:,:].astype('uint8'), "gray")
+    plt.imshow(ycbcr[:,:,:].astype('uint8'))
     plt.show()
+
+    for i in range(3):
+        plt.figure()
+        plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
+        plt.imshow(ycbcr[:,:,i].astype('uint8'), cmaps[i])
+        plt.show()
+
     inv = ycbcr
     inv[:,:,[1,2]] -= 128
-    rgb = inv.dot(TcInverted)
+    rgb = np.dot(inv, TcInverted)
     plt.figure()
     plt.title("RGB from YCbCr Image")
     plt.imshow(rgb.astype('uint8'))
@@ -189,7 +197,7 @@ def main():
 
     ''' exercise 1 '''
 
-    #qualityChange("imagens/logo", 100)
+    #qualityChange("imagens/logo", 50)
 
 
     ''' exercise 2 '''
@@ -220,9 +228,15 @@ def main():
 
     ''' exercise 5 '''
 
-    RGBYtoYCrCb("imagens/barn_mountains")
+    #RGBYtoYCrCb("imagens/barn_mountains")
 
 
 
 if __name__ == "__main__":
     main()
+
+
+
+'''
+colormap references: https://matplotlib.org/1.2.1/mpl_examples/pylab_examples/show_colormaps.pdf
+'''
