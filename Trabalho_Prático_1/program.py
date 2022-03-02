@@ -36,12 +36,6 @@ def colorMapping(color1, color2):
     linGrayImg[:, :, 1] = linGray # green
     linGrayImg[:, :, 2] = linGray # blue
 
-    #plt.figure()
-    #plt.title("Original Grey Scale")
-    #plt.imshow(linGrayImg)
-    #plt.axis('off')
-    #plt.show()
-
     colorlist=[color1, color2]
     colorMap = clr.LinearSegmentedColormap.from_list('cmap', colorlist, N=256) # gera um colormap linear suave (name, array de cores, niveis de quantizaçao rgb)
     plt.figure()
@@ -63,21 +57,19 @@ def imageColorMapping(images, colorMap, color1, color2):
     plt.show()
 
 
-def joinRGB(image, x, y, c, array):
+def joinRGB(x, y, c, array):
     
     vector = np.zeros((x,y,c))
     vector[:,:,0] = array[0]
     vector[:,:,1] = array[1]
     vector[:,:,2] = array[2]    
-
-    print(vector.shape)
-    print(image.shape)  
+ 
+    vector = vector.astype(np.uint8)
     plt.figure()
     plt.title("RGB Components Added")
-    plt.imshow(vector.astype('uint8'))
+    plt.imshow(vector)
     plt.axis('off')
     plt.show()
-    print(np.array_equal(image, vector))
 
 
 def separateRGB(images):
@@ -108,7 +100,7 @@ def separateRGB(images):
         plt.show()
     
 
-    joinRGB(image, x, y, c, array)
+    joinRGB(x, y, c, array)
     
   
 
@@ -138,21 +130,23 @@ def padding(image):
     paddedImg[:, :, 0] = p1
     paddedImg[:, :, 1] = p2
     paddedImg[:, :, 2] = p3
-    print("dim = ", paddedImg.shape)
+    #print("dim = ", paddedImg.shape)
+    paddedImg = paddedImg.astype(np.uint8)
     plt.figure()
     plt.title("padded")
-    plt.imshow(paddedImg.astype('uint8'))
+    plt.imshow(paddedImg)
     plt.axis('off')
     plt.show()
     unpad(paddedImg, org_r, org_c)
     
     
-def unpad(img, r, c):
-    unpaddedImg = img[:r, :c, :]
-    print("dim = ", unpaddedImg.shape)
+def unpad(paddedImg, r, c):
+    unpaddedImg = paddedImg[:r, :c, :]
+    #.print("dim = ", unpaddedImg.shape)
+    unpaddedImg = unpaddedImg.astype(np.uint8)
     plt.figure()
     plt.title("unpadded")
-    plt.imshow(unpaddedImg.astype('uint8'))
+    plt.imshow(unpaddedImg)
     plt.axis('off')
     plt.show()
 
@@ -160,31 +154,27 @@ def unpad(img, r, c):
 
 def RGBYtoYCrCb(imgarray):
     image = plt.imread(imgarray + ".bmp")
-    cmaps = ["gray", "cubehelix", "viridis"]
     ycbcr = np.dot(image, Tc)
     ycbcr[:,:,[1,2]] += 128
-    #ycbcr = ycbcr.round()
-
-    ycbcr[ycbcr > 255] = 255
-    ycbcr[ycbcr < 0] = 0
-
-    plt.figure()
-    plt.title("YCbCr from RBG Image")
-    plt.imshow(ycbcr[:,:,:].astype('uint8'))
-    plt.show()
 
     for i in range(3):
         plt.figure()
         plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
-        plt.imshow(ycbcr[:,:,i].astype('uint8'), cmaps[i])
+        plt.imshow(ycbcr[:,:,i], "gray")
         plt.show()
 
     inv = ycbcr
     inv[:,:,[1,2]] -= 128
     rgb = np.dot(inv, TcInverted)
+
+    rgb = rgb.round()
+    rgb[rgb > 255] = 255
+    rgb[rgb < 0] = 0
+
+    rgb = rgb.astype(np.uint8)
     plt.figure()
     plt.title("RGB from YCbCr Image")
-    plt.imshow(rgb.astype('uint8'))
+    plt.imshow(rgb)
     plt.show()
 
 
@@ -202,33 +192,33 @@ def main():
 
     ''' exercise 2 '''
 
-    #encoder()
-    #decoder()
+    encoder() # apenas tem um pass
+    decoder() # apenas tem um pass
 
 
     ''' exercise 3 '''
 
     '''3.1 & 3.2'''
-    #colors = ["purple", "gold"]
-    #cm = colorMapping(colors[0], colors[1])
+    colors = ["purple", "gold"]
+    cm = colorMapping(colors[0], colors[1])
 
     '''3.3'''
-    #imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
+    imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
 
 
     '''3.4'''
 
-    #separateRGB("imagens/peppers")
+    separateRGB("imagens/peppers")
 
 
     ''' exercise 4 '''
 
-    #padding("imagens/barn_mountains.bmp")
+    padding("imagens/barn_mountains.bmp")
 
 
     ''' exercise 5 '''
 
-    #RGBYtoYCrCb("imagens/barn_mountains")
+    RGBYtoYCrCb("imagens/barn_mountains")
 
 
 
