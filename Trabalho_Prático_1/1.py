@@ -1,111 +1,36 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
-import numpy as np
-import cv2  #pip3 install opencv-python
-import scipy.fftpack as fft
-import math as m    
-
-nl = 16 #deve ser multiplo de 16!
-nc = 16 #deve ser multiplo de 16!
-colors = 3
-
-images = "imagens/barn_mountains.bmp"
-img = plt.imread(images)
 
 
-print("Downsampling 4:2:0 using no interpolation filter")
-print()
-scaleX = 0.5
-scaleY = 0.5
+def main():
+    plt.close('all')
+    img = plt.imread('imagens\peppers.bmp')
+    #plt.figure()
+    #plt.imshow(img)
+    #plt.show()
+    #print(img.shape)
+    #print(img.dtype)
 
-stepX = int(1//scaleX)
-stepY = int(1//scaleY)
 
-dsImg = img[::stepY, ::stepX, :]
+    
+    R = img[:,:,0]
+    #print(R.shape)
+    #print(R[0,0])
 
-fig = plt.figure(figsize=(10, 10))
-fig.add_subplot(1, 2, 1)
-plt.imshow(img)
-plt.title('Original')
-plt.axis('image')
+    cmRed = clr.LinearSegmentedColormap.from_list('myRed', ([0,0,0], [1,0,0]), 86)
+    cmGreen = clr.LinearSegmentedColormap.from_list('myRed', ([0,0,0], [0,1,0]), 256)
+    cmBlue = clr.LinearSegmentedColormap.from_list('myRed', ([0,0,0], [0,0,1]), 256)
+    cmGray = clr.LinearSegmentedColormap.from_list('myGray', ([0,0,0], [1,1,1]), 256)
+    
+    plt.figure()
+    #plt.title('Bunfeecaaa')
+    plt.imshow(R, cmRed)
+   # plt.figure()
+   # plt.imshow(R, cmGray)
+    plt.show()
 
-fig.add_subplot(1, 2, 2)
-plt.imshow(dsImg)
-plt.title('downsampled 4:2:0 sx = 0.5, sy = 0.5')
-plt.axis('image')
-plt.show()
 
-print()
-print("Downsampling 4:2:0 using openCv with interpolation filter")
-print()
 
-dsImgInterp = cv2.resize(img, None, fx=scaleX, fy=scaleY, interpolation=cv2.INTER_LINEAR)
 
-fig = plt.figure(figsize=(10, 10))
-fig.add_subplot(1, 2, 1)
-plt.imshow(img)
-plt.title('Original')
-plt.axis('image')
-
-fig.add_subplot(1, 2, 2)
-plt.imshow(dsImgInterp)
-plt.title('downsampled 4:2:0 sx = 0.5, sy = 0.5 interpolated')
-plt.axis('image')
-plt.show()
-
-print()
-print("Upsampling with repetitions")
-print()
-
-fig = plt.figure(figsize=(20, 20))
-
-usImg = np.repeat(dsImg, stepX, axis=1)
-l, c, p = usImg.shape
-usImg = np.repeat(usImg, stepY, axis=0)
-
-fig.add_subplot(1, 4, 1)
-plt.imshow(img)
-plt.title('original')
-plt.axis('image')
-
-fig.add_subplot(1, 4, 2)
-plt.imshow(dsImg)
-plt.title('downsampled 4:2:0 no interp')
-plt.axis('image')
-
-fig.add_subplot(1, 4, 3)
-plt.imshow(usImg)
-plt.title('upsampled with repetitions')
-plt.axis('image')
-plt.show()
-
-print()
-print("dsImg size = ", dsImg.shape)
-print("usImg size = ", usImg.shape)
-
-print()
-print("Upsampling with interpolation")
-print()
-
-fig = plt.figure(figsize=(20, 20))
-
-usImg = cv2.resize(dsImg, None, fx=stepX, fy=stepY, interpolation=cv2.INTER_LINEAR)
-fig.add_subplot(1, 4, 1)
-plt.imshow(img)
-plt.title('original')
-plt.axis('image')
-
-fig.add_subplot(1, 4, 2)
-plt.imshow(dsImg)
-plt.title('downsampled 4:2:0 no interp')
-plt.axis('image')
-
-fig.add_subplot(1, 4, 3)
-plt.imshow(usImg)
-plt.title('upsampled with interpolation')
-plt.axis('image')
-plt.show()
-
-print()
-print("dsImg size = ", dsImg.shape)
-print("usImg size = ", usImg.shape)
+if __name__ == "__main__":
+    main()

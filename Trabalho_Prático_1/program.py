@@ -1,17 +1,21 @@
-
+from tkinter import Y
 from PIL import Image
-from cv2 import CAP_PROP_XI_COUNTER_VALUE
-from scipy import fftpack as fft
-from scipy import ifft
 from matplotlib import cm
-
 import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
 import cv2
 
+
 Tc = np.array([[0.299, 0.587, 0.114],[-0.168736, -0.331264, 0.5],[0.5, -0.418688, -0.081312]])
 TcInverted = np.linalg.inv(Tc)
+
+
+def encoder():
+    pass
+
+def decoder():
+    pass
 
 
 def qualityChange(images, value):
@@ -54,6 +58,22 @@ def imageColorMapping(images, colorMap, color1, color2):
     plt.axis('off')
     plt.show()
 
+
+def joinRGB(x, y, c, array):
+    
+    vector = np.zeros((x,y,c))
+    vector[:,:,0] = array[0]
+    vector[:,:,1] = array[1]
+    vector[:,:,2] = array[2]    
+ 
+    vector = vector.astype(np.uint8)
+    plt.figure()
+    plt.title("RGB Components Added")
+    plt.imshow(vector)
+    plt.axis('off')
+    plt.show()
+
+
 def separateRGB(images):
     colors = ["red", "green", "blue"]
     vals = [(1,0,0), (0,1,0), (0,0,1)]
@@ -82,46 +102,29 @@ def separateRGB(images):
         plt.show()
     
 
-    return x, y, c, array
-
-def joinRGB(x, y, c, array):
+    joinRGB(x, y, c, array)
     
-    vector = np.zeros((x,y,c))
-    vector[:,:,0] = array[0]
-    vector[:,:,1] = array[1]
-    vector[:,:,2] = array[2]    
- 
-    vector = vector.astype(np.uint8)
-    plt.figure()
-    plt.title("RGB Components Added")
-    plt.imshow(vector)
-    plt.axis('off')
-    plt.show()
-
-    return
-
+  
 def padding(image):
-    img = plt.imread(image + ".bmp")
+    img = plt.imread(image)
     
     p1 = img[:, :, 0]
     p2 = img[:, :, 1]
     p3 = img[:, :, 2]
-    
+
     
     r, c = p1.shape
-    countC = c%16
-    countR = r%16
     org_r, org_c = p1.shape
-    if (countR) != 0:
-        p1 = np.vstack((p1, np.tile(p1[-1, :], (countR, 1))))
-        p2 = np.vstack((p2, np.tile(p2[-1, :], (countR, 1))))
-        p3 = np.vstack((p3, np.tile(p3[-1, :], (countR, 1))))
+    while (r%16) != 0:
+        p1 = np.vstack([p1, p1[-1, :]])
+        p2 = np.vstack([p2, p2[-1, :]])
+        p3 = np.vstack([p3, p3[-1, :]])
         r, c = p1.shape
     
-    if (countC) != 0:
-        p1 = np.hstack((p1, np.tile(p1[:, -1], (countC, 1).T)))
-        p2 = np.hstack((p2, np.tile(p2[:, -1], (countC, 1).T)))
-        p3 = np.hstack((p3, np.tile(p3[:, -1], (countC, 1).T)))
+    while (c%16) != 0:
+        p1 = np.hstack([p1, p1[:, -1]])
+        p2 = np.hstack([p2, p2[:, -1]])
+        p3 = np.hstack([p2, p2[:, -1]])
         r, c = p1.shape
     
     paddedImg = np.zeros((r, c, 3))
@@ -135,12 +138,11 @@ def padding(image):
     plt.imshow(paddedImg)
     plt.axis('off')
     plt.show()
+    unpad(paddedImg, org_r, org_c)
     
-    return paddedImg, org_r, org_c
     
-    
-def unpad(paddedImg, org_r, org_c):
-    unpaddedImg = paddedImg[:org_r, :org_c, :]
+def unpad(paddedImg, r, c):
+    unpaddedImg = paddedImg[:r, :c, :]
     #.print("dim = ", unpaddedImg.shape)
     unpaddedImg = unpaddedImg.astype(np.uint8)
     plt.figure()
@@ -151,27 +153,22 @@ def unpad(paddedImg, org_r, org_c):
 
 
 
-def RGBtoYCrCb(image):
-    imgarray = plt.imread(image + ".bmp")
-    ycbcr = np.dot(imgarray, Tc)
+def RGBYtoYCrCb(imgarray):
+    image = plt.imread(imgarray + ".bmp")
+    ycbcr = np.dot(image, Tc)
     ycbcr[:,:,[1,2]] += 128
-    
+
     y = ycbcr[:,:,0]
-    Cb = ycbcr[:,:,1]
-    Cr = ycbcr[:,:,2]
+    cb = ycbcr[:,:,1]
+    cr = ycbcr[:,:,2]
 
-    for i in range(3):
-        plt.figure()
-        plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
-        plt.imshow(ycbcr[:,:,i], "gray")
-        plt.show()
+    #for i in range(3):
+        #plt.figure()
+        #plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
+        #plt.imshow(ycbcr[:,:,i], "gray")
+        #plt.show()
 
-    return y, Cb, Cr, ycbcr
-
-
-def YCbCrtoRGB(ycbcr):
     inv = ycbcr
-
     inv[:,:,[1,2]] -= 128
     rgb = np.dot(inv, TcInverted)
 
@@ -184,11 +181,12 @@ def YCbCrtoRGB(ycbcr):
     plt.title("RGB from YCbCr Image")
     plt.imshow(rgb)
     plt.show()
-    
-    return rgb
 
-def subsampling(Cb, Cr, ratio, inter):
+    return y, cb, cr
+
+def subsampling(Cb, Cr, ratio, inter=None):
     cbRatio = ratio[1]/ratio[0]
+
 
     if ratio[2] == 0:
         if ratio[1] == 4:
@@ -206,11 +204,11 @@ def subsampling(Cb, Cr, ratio, inter):
         dsCrInterp = cv2.resize(Cr, None, fx=cbRatio, fy=crRatio, interpolation=cv2.INTER_LINEAR)
 
         plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-        plt.subplot(1, 2, 1)
         plt.title("Cb Downsampled with Interpolation")
+        plt.subplot(1, 2, 1)
         plt.imshow(dsCbInterp, "gray")
-        plt.subplot(1, 2, 2)
         plt.title("Cr Downsampled with Interpolation")
+        plt.subplot(1, 2, 2)
         plt.imshow(dsCrInterp, "gray")
         plt.show()
 
@@ -233,7 +231,7 @@ def subsampling(Cb, Cr, ratio, inter):
 
     
 
-def upsampler(cbStep, crStep, dsCb, dsCr, inter):
+def upsampler(cbStep, crStep, dsCb, dsCr, inter=None):
 
     usCb = np.repeat(dsCb, cbStep, axis=1)
     usCb = np.repeat(usCb, crStep, axis=0)
@@ -273,168 +271,55 @@ def upsampler(cbStep, crStep, dsCb, dsCr, inter):
     print()
 
 
-def dct2(images):
-
-    img = plt.imread(images + ".bmp")
-    cm_grey = clr.LinearSegmentedColormap.from_list('greyMap', [(0, 0, 0), (1, 1, 1)], 256)
-
-    dctImg = fft.dct(fft.dct(img, norm="ortho").T, norm="ortho").T
-    dctLogImg = np.log(np.abs(dctImg) + 0.0001)
-
-    fig = plt.figure(figsize=(20, 20))
-
-    fig.add_subplot(1, 3, 1)
-    plt.imshow(img, cm_grey)
-    plt.title('original')
-    plt.axis('image')
-
-    fig.add_subplot(1, 3, 2)
-    plt.imshow(dctImg, cm_grey)
-    plt.title('DCT')
-    plt.axis('image')
-
-    fig.add_subplot(1, 3, 3)
-    plt.imshow(dctLogImg, cm_grey)
-    plt.title('DCT log')
-    plt.axis('image')
-    plt.show()
-
-    invDctImg = fft.idct(fft.idct(dctImg, norm="ortho").T, norm="ortho").T
-
-    fig = plt.figure(figsize=(20, 20))
-
-    fig.add_subplot(1, 4, 1)
-    plt.imshow(img, cm_grey)
-    plt.title('original')
-    plt.axis('image')
-
-    fig.add_subplot(1, 4, 2)
-    plt.imshow(invDctImg, cm_grey)
-    plt.title('IDCT')
-    plt.axis('image')
-    plt.show()
-
-    fig = plt.figure(figsize=(5, 5))
-    diffImg = img-invDctImg
-    diffImg[diffImg < 0.000001] = 0.
-
-    plt.imshow(diffImg, cm_grey)
-    plt.title('original - invDCT')
-    plt.axis('image')
-    plt.show()
-
-def idct(X: np.ndarray) -> np.ndarray:
-    return fft.idct(fft.idct(X, norm="ortho").T, norm="ortho").T
-
-def dct(X: np.ndarray) -> np.ndarray:
-    return fft.dct(fft.dct(X, norm="ortho").T, norm="ortho").T
-
-def blockIdct(x: np.ndarray, size):
-    h, w = x.shape
-    newImg = np.zeros(x.shape)
-    for i in range(0, h, size):
-        for j in range(0, w, size):
-            newImg[i:i+size, j:j+size] = idct(x[i:i+size, j:j+size])
-    return newImg 
-
-def blockDct(x: np.ndarray, size):
-    h, w = x.shape
-    newImg = np.zeros(x.shape)
-    for i in range(0, h, size):
-        for j in range(0, w, size):
-            newImg[i:i+size, j:j+size] = dct(x[i:i+size, j:j+size])
-    return newImg   
-    
-def exer(y, cb, cr):
-    block = 8
-    #y, Cb, Cr = RGBtoYCrCb("imagens/barn_mountains")
-    #x, y1, c = plt.imread("imagens/barn_mountains.bmp").shape
-    
-    y = blockDct(y, size=block)
-    cb = blockDct(cb, size=block)
-    cr = blockDct(cr, size=block)
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-    plt.title("DCT 8x8")
-    plt.subplot(1, 3, 1)
-    plt.imshow(y, "gray")
-    plt.subplot(1, 3, 2)
-    plt.imshow(cb, "gray")
-    plt.subplot(1, 3, 3)
-    plt.imshow(cr, "gray")
-    plt.show()
-
-    y = blockIdct(y, size=block)
-    cb = blockIdct(cb, size=block)
-    cr = blockIdct(cr, size=block)
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-    plt.title("Inverted DCT 8x8")
-    plt.subplot(1, 3, 1)
-    plt.imshow(y, "gray")
-    plt.subplot(1, 3, 2)
-    plt.imshow(cb, "gray")
-    plt.subplot(1, 3, 3)
-    plt.imshow(cr, "gray")
-    plt.show()
-
-    block = 64
-    y = blockDct(y, size=block)
-    cb = blockDct(cb, size=block)
-    cr = blockDct(cr, size=block)
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-    plt.title("DCT 32x32")
-    plt.subplot(1, 3, 1)
-    plt.imshow(y, "gray")
-    plt.subplot(1, 3, 2)
-    plt.imshow(cb, "gray")
-    plt.subplot(1, 3, 3)
-    plt.imshow(cr, "gray")
-    plt.show()
-
-    y = blockIdct(y, size=block)
-    cb = blockIdct(cb, size=block)
-    cr = blockIdct(cr, size=block)
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-    plt.title("Inverted DCT 8x8")
-    plt.subplot(1, 3, 1)
-    plt.imshow(y, "gray")
-    plt.subplot(1, 3, 2)
-    plt.imshow(cb, "gray")
-    plt.subplot(1, 3, 3)
-    plt.imshow(cr, "gray")
-    plt.show()
-    
-    #𝐈𝐭'𝐬 𝐚 𝐰𝐢𝐥𝐝 𝐩𝐨𝐩𝐩𝐥𝐢𝐞𝐫
-def encoder(image):
-    
-    x, y1, c, array = separateRGB(image)
-    padded_img, org_r, org_c = padding(image)
-    y , cb, cr, ycbcr = RGBtoYCrCb(image)
-    cbStep, crStep, SubCb, SubCr = subsampling(cb, cr, (4,2,0), True)
-
-    dct2(image)
-    
-    
-    return x, y1, c, array, padded_img, org_r, org_c, y, cb, cr, ycbcr, cbStep, crStep, SubCb, SubCr        
-    
-        
-def decoder(x, y1, c, array, padded_img, org_r, org_c, y, cb, cr, ycbcr, cbStep, crStep, SubCb, SubCr):
-    
-    joinRGB(x, y1, c, array)
-    unpad(padded_img, org_r, org_c)
-    YCbCrtoRGB(ycbcr)
-    upsampler(cbStep, crStep, SubCb, SubCr, True)
-    exer(y, cb, cr)
-    return
-
 
 def main():
 
     plt.close('all')
 
-    image = "imagens/peppers"
-    inter = True
-    x, y1, c, array, padded_img, org_r, org_c, y, cb, cr, ycbcr, cbStep, crStep, SubCb, SubCr = encoder(image)
-    decoder(x, y1, c, array, padded_img, org_r, org_c, y, cb, cr, ycbcr, cbStep, crStep, SubCb, SubCr)  
+    ''' exercise 1 '''
+
+    #qualityChange("imagens/logo", 50)
+
+
+    ''' exercise 2 '''
+
+    encoder() # apenas tem um pass
+    decoder() # apenas tem um pass
+
+
+    ''' exercise 3 '''
+
+    '''3.1 & 3.2'''
+    #colors = ["purple", "gold"]
+    #cm = colorMapping(colors[0], colors[1])
+
+    '''3.3'''
+    #imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
+
+
+    '''3.4'''
+
+    #separateRGB("imagens/peppers")
+
+
+    ''' exercise 4 '''
+
+    #padding("imagens/barn_mountains.bmp")
+
+
+    ''' exercise 5 '''
+
+    y, cb, cr = RGBYtoYCrCb("imagens/barn_mountains")
+
+
+    ''' exercise 6 '''
+
+    #cb, cr = subsampling(cb, cr, (4,2,0))
+    #cvUpsampler(cb, cr, y.shape)
+    xstep, ystep, cbds, crds = subsampling(cb, cr, (4,2,0))
+    upsampler(xstep, ystep, cbds, crds)
+
+
 
 
 if __name__ == "__main__":
