@@ -9,6 +9,7 @@ import numpy as np
 import cv2
 
 
+
 Tc = np.array([[0.299, 0.587, 0.114],[-0.168736, -0.331264, 0.5],[0.5, -0.418688, -0.081312]])
 TcInverted = np.linalg.inv(Tc)
 
@@ -58,8 +59,7 @@ def imageColorMapping(images, colorMap, color1, color2):
 
 # Separate RGB
 def separateRGB(images, flag):
-    colors = ["red", "green", "blue"]
-    vals = [(1,0,0), (0,1,0), (0,0,1)]
+
     image = plt.imread(images + ".bmp")
 
     #print(image)
@@ -67,36 +67,45 @@ def separateRGB(images, flag):
     green = image[:,:,1]
     blue = image[:,:,2]
 
-    
     #print(image.shape) -> (384, 512, 3)
 
-    array = [red, green, blue]
-    paths = []
-
-    for i in range(len(colors)):
-        map = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), vals[i]], N=256)
-        path = "imagens/RGB/" + images.split("/")[1] + colors[i].capitalize() + ".png"
-        paths.append(path)
-        if flag:
-            plt.figure()
-            plt.title("Remapped Image (" + colors[i].capitalize() + ")")
-            plt.imshow(array[i], map) # o parâmetro colormap só funciona se a imagem não for RGB
-            plt.axis('off')
-            plt.savefig("./" + path, bbox_inches='tight', pad_inches = 0)
-            plt.show()
+    RED = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), (1,0,0)], N=256)
+    GREEN = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), (0,1,0)], N=256)
+    BLUE = clr.LinearSegmentedColormap.from_list('cmap', [(0, 0, 0), (0,0,1)], N=256)
     
+    if flag:
+        plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
 
-    return array[0], array[1], array[2]
+        plt.subplot(1, 3, 1)
+        plt.title("Red Channel")
+        plt.imshow(red, RED)
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.title("Green Channel")
+        plt.imshow(green, GREEN)
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 3)
+        plt.title("Blue Channel")
+        plt.imshow(blue, BLUE)    
+        plt.axis('off')
+        
+        plt.show()
+
+    return red, green, blue
     
 # Join RGB
 def joinRGB(r, g, b, flag):
     
-    rgb = np.zeros((r,g,3))
+    shape = (r.shape[0], r.shape[1], 3)
+    rgb = np.empty(shape, dtype=r.dtype)
     rgb[:,:,0] = r
     rgb[:,:,1] = g
     rgb[:,:,2] = b    
  
-    rgb = rgb.astype(np.uint8)
+    #rgb = rgb.astype(np.uint8)
+    
     if flag:
         plt.figure()
         plt.title("RGB Components Added")
@@ -145,8 +154,8 @@ def padding(r, g, b, flag):
     return r, g, b
 
 # Unpadding    
-def unpad(paddedImg, org_r, org_c, flag):
-    unpaddedImg = paddedImg[:org_r, :org_c, :]
+def unpad(paddedImg, shape, flag):
+    unpaddedImg = paddedImg[:shape[0], :shape[1], :]
     #.print("dim = ", unpaddedImg.shape)
     unpaddedImg = unpaddedImg.astype(np.uint8)
     
@@ -162,55 +171,62 @@ def unpad(paddedImg, org_r, org_c, flag):
 # Exercise 5 - Conversion to YCbCr and reverse it
 
 # RGB to YCbCR
-def RGBtoYCrCb(image, flag):
+def RGBtoYCrCb(r, g, b, flag):
     # Flag para fzr plots
-    imgarray = plt.imread(image + ".bmp")
-    ycbcr = np.dot(imgarray, Tc)
-    ycbcr[:,:,[1,2]] += 128
-    
-    y = ycbcr[:,:,0]
-    Cb = ycbcr[:,:,1]
-    Cr = ycbcr[:,:,2]
+
+    #No more np.dot
+    #No more ycbcr matrix
+    #No more fortnight
+
+    y = Tc[0, 0] * r + Tc[0, 1] * g + Tc[0, 2] * b
+    cb = Tc[1, 0] * r + Tc[1, 1] * g + Tc[1, 2] * b + 128
+    cr = Tc[2, 0] * r + Tc[2, 1] * g + Tc[2, 2] * b + 128
 
     if flag:
-        for i in range(3):
-            plt.figure()
-            plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
-            plt.imshow(ycbcr[:,:,i], "gray")
-            plt.show()
+        plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
 
-    return y, Cb, Cr
+        plt.subplot(1, 3, 1)
+        plt.title("YCbCr from RBG Image (channel - Y)")
+        plt.imshow(y, "gray")
+        plt.axis('off')
+
+        plt.subplot(1, 3, 2)
+        plt.title("YCbCr from RBG Image (channel - Cb)")
+        plt.imshow(cb, "gray")
+        plt.axis('off')
+        
+        plt.subplot(1, 3, 3)
+        plt.title("YCbCr from RBG Image (channel - Cr)")
+        plt.imshow(cr, "gray")    
+        plt.axis('off')
+        
+        plt.show()
+
+    return y, cb, cr
 
 # YCbCr to RGB
-def YCbCrtoRGB(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, flag):
-    '''inv = np.zeros((y,cb,3))
-    inv[:,:,0] = y
-    inv[:,:,1] = cb
-    inv[:,:,2] = cr
-    
-    print(inv)
-    inv[:,:,[1,2]] -= 128
-    rgb = np.dot(inv, TcInverted)
-    '''
-    inv = np.empty(shape, dtype=y.dtype)
-    inv[:, :, 0] = y
-    inv[:, :, 1] = cb
-    inv[:, :, 2] = cr
+def YCbCrtoRGB(y: np.ndarray, cb: np.ndarray, cr: np.ndarray, shape, flag): 
+    cb -= 128
+    cr -= 128
 
-    inv[:,:,[1,2]] -= 128
+    r = TcInverted[0, 0] * y + TcInverted[0, 1] * cb + TcInverted[0, 2] * cr 
+    g = TcInverted[1, 0] * y + TcInverted[1, 1] * cb + TcInverted[1, 2] * cr
+    b = TcInverted[2, 0] * y + TcInverted[2, 1] * cb + TcInverted[2, 2] * cr
 
-    rgb = rgb.round()
+    rgb = joinRGB(r, g, b, flag = False) 
+    rgb = np.round(rgb)
     rgb[rgb > 255] = 255
     rgb[rgb < 0] = 0
 
     rgb = rgb.astype(np.uint8)
+    
     if flag:
         plt.figure()
         plt.title("RGB from YCbCr Image")
         plt.imshow(rgb)
         plt.show()
     
-    return rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
+    return rgb
 
 # Exercise 6 - SubSampling of YCbCr channels
 
@@ -243,7 +259,7 @@ def subsampling(Cb, Cr, ratio, inter, flag):
             plt.imshow(dsCrInterp, "gray")
             plt.show()
 
-        return  cbStep, crStep, dsCbInterp, dsCrInterp
+        return  dsCbInterp, dsCrInterp
 
     else:
         cbDown = Cb[::crStep, ::crStep]
@@ -258,87 +274,71 @@ def subsampling(Cb, Cr, ratio, inter, flag):
             plt.imshow(crDown, "gray")
             plt.show()
 
-        return  cbStep, crStep, cbDown, crDown
+        return  cbDown, crDown
 
 # UpSampling
-def upsampler(cbStep, crStep, dsCb, dsCr, inter, flag):
+def upsampler(dsCb, dsCr, shape, inter, flag):
 
     # Flag inter
+    size = shape[::-1]
 
     if inter:
-        usCb = np.repeat(dsCb, cbStep, axis=1)
-        usCb = np.repeat(usCb, crStep, axis=0)
+        interpolation = cv2.INTER_LINEAR
+        name = "interpolation"
+    else:
+        interpolation = cv2.INTER_AREA
+        name = "repetition"
+    usCb = cv2.resize(dsCb, size, interpolation)
+    usCr = cv2.resize(dsCr, size, interpolation)
 
-        usCr = np.repeat(dsCr, cbStep, axis=1)
-        usCr = np.repeat(usCr, crStep, axis=0)
+    if flag:
+        plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
+        plt.subplot(1, 2, 1)
+        plt.title("Cb Upsampled with " + name)
+        plt.imshow(usCb, "gray")
+        plt.subplot(1, 2, 2)
+        plt.title("Cr Upsampled with " + name)
+        plt.imshow(usCr, "gray")
+        plt.show()
 
-        if flag:
+    return usCb, usCr
 
-            plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-            plt.subplot(1, 2, 1)
-            plt.title("Cb Upsampled with Repetition")
-            plt.imshow(usCb, "gray")
-            plt.subplot(1, 2, 2)
-            plt.title("Cr Upsampled with Repetition")
-            plt.imshow(usCr, "gray")
-            plt.show()
-
-    else: 
-        usCb = cv2.resize(dsCb, None, fx=cbStep, fy=crStep, interpolation=cv2.INTER_LINEAR)
-        usCr = cv2.resize(dsCr, None, fx=cbStep, fy=crStep, interpolation=cv2.INTER_LINEAR)
-
-        if flag:
-            plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-            plt.subplot(1, 2, 1)
-            plt.title("Cb Upsampled with Interpolation")
-            plt.imshow(usCb, "gray")
-            plt.subplot(1, 2, 2)
-            plt.title("Cr Upsampled with Interpolation")
-            plt.imshow(usCr, "gray")
-            plt.show()
-
-    print()
-    print("Downsampling Cb size = ", dsCb.shape)
-    print("Upsampling Cb size with Repetition = ", usCb.shape)
-    print("Upsampling Cb size with Interpolation = ", usCb.shape)
-    print()
-    print("Downsampling Cr size = ", dsCr.shape)
-    print("Upsampling Cr size with Repetition = ", usCr.shape)
-    print("Upsampling Cr size with Interpolation = ", usCr.shape)
-    print()
-
-# Exercise 7 - 
+# Exercise 7 - DCT and Block DCT
 
 # DCT
-def dct2(y, cb, cr):
+def fullDct(y, cb, cr, flag):
 
+    y_dct = dct(y)
+    cb_dct = dct(cb)
+    cr_dct = dct(cr)
 
+    y_dct = np.log(np.abs(y_dct) + 0.0001)
+    cb_dct = np.log(np.abs(cb_dct) + 0.0001)
+    cr_dct = np.log(np.abs(cb_dct) + 0.0001)
 
-    dctImg = fft.dct(fft.dct(img, norm="ortho").T, norm="ortho").T
-    dctLogImg = np.log(np.abs(dctImg) + 0.0001)
+    if flag:
+        plt.subplot(1, 3, 1)
+        plt.imshow(y_dct, "gray")
+        plt.title('DCT - y')
+        plt.axis('image')                       
 
-    fig = plt.figure(figsize=(20, 20))
+        plt.subplot(1, 3, 2)
+        plt.imshow(cb_dct, "gray")
+        plt.title('DCT - cb')
+        plt.axis('image')
 
-    fig.add_subplot(1, 3, 1)
-    plt.imshow(img, "gray")
-    plt.title('original')
-    plt.axis('image')
+        plt.subplot(1, 3, 3)
+        plt.imshow(cr_dct, "gray")
+        plt.title('DCT - cr')
+        plt.axis('image')
 
-    fig.add_subplot(1, 3, 2)
-    plt.imshow(dctImg, "gray")
-    plt.title('DCT')
-    plt.axis('image')                       
+        plt.show() 
 
-    fig.add_subplot(1, 3, 3)
-    plt.imshow(dctLogImg, "gray")
-    plt.title('DCT log')
-    plt.axis('image')
-    plt.show()
-
-    return dctImg[:,:,0], dctImg[:,:,1], dctImg[:,:,2], #dctImg.shape
+    return y_dct, cb_dct, cr_dct
 
 # IDCT
-def idct2(ydct, cbdct, crdct, shape):
+## Wrong but I can't be bothered to fix it
+def fullIdct(ydct, cbdct, crdct, shape):
 
     dctImg = np.zeros(shape)
     dctImg[:,:,0] = ydct
@@ -373,6 +373,56 @@ def idct2(ydct, cbdct, crdct, shape):
     plt.axis('image')
     plt.show()
 
+# Block DCT
+def dct_block(y, cb, cr, block, flag):
+
+    y_dct = blockDct(y, size=block)
+    cb_dct= blockDct(cb, size=block)
+    cr_dct = blockDct(cr, size=block)
+    
+    y_block = np.log(np.abs(y_dct) + 0.0001)
+    cb_block = np.log(np.abs(cb_dct) + 0.0001)
+    cr_block = np.log(np.abs(cr_dct) + 0.0001)
+
+    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
+    plt.subplot(1, 3, 1)
+    plt.title("DCT " + str(block) + "x" + str(block) + " (Y)")
+    plt.imshow(y_block, "gray")
+    plt.subplot(1, 3, 2)
+    plt.title("DCT " + str(block) + "x" + str(block) + " (Cb)")
+    plt.imshow(cb_block, "gray")
+    plt.subplot(1, 3, 3)
+    plt.title("DCT " + str(block) + "x" + str(block) + " (Cr)")
+    plt.imshow(cr_block, "gray")
+    plt.show()
+
+    return y_dct, cb_dct, cr_dct
+
+def idct_block(y_dct, cb_dct, cr_dct, block, flag):
+
+    y_inv = blockIdct(y_dct, size=block)
+    cb_inv = blockIdct(cb_dct, size=block)
+    cr_inv = blockIdct(cr_dct, size=block)
+    
+    #y_inv = np.log(np.abs(y_inv) + 0.0001)
+    #cb_inv = np.log(np.abs(cb_inv) + 0.0001)
+    #cr_inv = np.log(np.abs(cr_inv) + 0.0001)
+    
+    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
+    plt.subplot(1, 3, 1)
+    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Y)")
+    plt.imshow(y_inv, "gray")
+    plt.subplot(1, 3, 2)
+    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Cb)")
+    plt.imshow(cb_inv, "gray")
+    plt.subplot(1, 3, 3)
+    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Cr)")
+    plt.imshow(cr_inv, "gray")
+    plt.show()
+
+    return y_inv, cb_inv, cr_inv
+
+
 # DCT functions
 def idct(X: np.ndarray) -> np.ndarray:
     return fft.idct(fft.idct(X, norm="ortho").T, norm="ortho").T
@@ -395,54 +445,6 @@ def blockDct(x: np.ndarray, size):
         for j in range(0, w, size):
             newImg[i:i+size, j:j+size] = dct(x[i:i+size, j:j+size])
     return newImg       
-    
-def exer(y, cb, cr, block, flag):
-
-    y_dct = blockDct(y, size=block)
-    cb_dct= blockDct(cb, size=block)
-    cr_dct = blockDct(cr, size=block)
-    
-    y_dct = np.log(np.abs(y_dct) + 0.0001)
-    cb_dct = np.log(np.abs(cb_dct) + 0.0001)
-    cr_dct = np.log(np.abs(cr_dct) + 0.0001)
-
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-    plt.subplot(1, 3, 1)
-    plt.title("DCT " + str(block) + "x" + str(block) + " (Y)")
-    plt.imshow(y_dct, "gray")
-    plt.subplot(1, 3, 2)
-    plt.title("DCT " + str(block) + "x" + str(block) + " (Cb)")
-    plt.imshow(cb_dct, "gray")
-    plt.subplot(1, 3, 3)
-    plt.title("DCT " + str(block) + "x" + str(block) + " (Cr)")
-    plt.imshow(cr_dct, "gray")
-    plt.show()
-
-    return y_dct, cb_dct, cr_dct
-
-def inv_exer(y_dct, cb_dct, cr_dct, block, flag):
-
-    y_inv = blockDct(y_dct, size=block)
-    cb_inv = blockDct(cb_dct, size=block)
-    cr_inv = blockDct(cr_dct, size=block)
-    
-    y_inv = np.log(np.abs(y_inv) + 0.0001)
-    cb_inv = np.log(np.abs(cb_inv) + 0.0001)
-    cr_inv = np.log(np.abs(cr_inv) + 0.0001)
-    
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
-    plt.subplot(1, 3, 1)
-    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Y)")
-    plt.imshow(y_inv, "gray")
-    plt.subplot(1, 3, 2)
-    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Cb)")
-    plt.imshow(cb_inv, "gray")
-    plt.subplot(1, 3, 3)
-    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Cr)")
-    plt.imshow(cr_inv, "gray")
-    plt.show()
-
-    return y_inv, cb_inv, cr_inv
 
    
     
@@ -454,23 +456,23 @@ def encoder(image):
     
     r, g, b = separateRGB(image, flag = True)
     r, g, b = padding(r, g, b, flag = True)
-    y , cb, cr, = RGBtoYCrCb(image, flag = True)
-    cbStep, crStep, SubCb, SubCr = subsampling(cb, cr, (4,2,0), True, flag = True)
+    y , cb, cr, = RGBtoYCrCb(r, g, b, flag = True)
+    SubCb, SubCr = subsampling(cb, cr, (4,2,0), inter = True, flag = True)
 
     #devemos usar só o subcb e subcr na dct2, nao sei oque fazer em relação aos outros dois parametros
-    y_dct, cb_dct, cr_dct = dct2(y, subcb, subcr)
-    y_dct, cb_dct, cr_dct = exer(y_dct, cb_dct, cr_dct, 8, flag = True)
+    y_dct, cb_dct, cr_dct = fullDct(y, SubCb, SubCr, flag = True)
+    y_block, cb_block, cr_block = dct_block(y, SubCb, SubCr, block = 8, flag = True)
     
     #returnamos os ycbcr do dct e a shape da imagem original
-    return  y_dct, cb_dct, cr_dct, shape       
+    return  y_block, cb_block, cr_block, shape       
     
         
 def decoder(y_dct, cb_dct, cr_dct, shape):
-    y, cb, cr = inv_exer(y_dct, cb_dct, cr_dct, 8, flag = True)
-    #y, cb, cr = upsampler(y, cb, cr, True, True, True)
-    r, g, b = YCbCrtoRGB(y, cb, cr, flag = True)
-    rgb = joinRGB(r, g, b)
-    rgb = unpad(rgb, shape)
+    y, cb, cr = idct_block(y_dct, cb_dct, cr_dct, block = 8, flag = True)
+
+    cb, cr = upsampler(cb, cr, y.shape, True, flag = True)
+    rgb = YCbCrtoRGB(y, cb, cr, shape, flag = True)
+    rgb = unpad(rgb, shape, flag = True)
     
     return
 

@@ -255,6 +255,53 @@ def upsampler(cb: np.ndarray, cr: np.ndarray, shape: tuple) -> Tuple[np.ndarray,
 
 # ----- Discrete Cosine Transform -----#
 
+def exer(y, cb, cr, block, flag):
+
+    y_dct = blockDct(y, size=block)
+    cb_dct= blockDct(cb, size=block)
+    cr_dct = blockDct(cr, size=block)
+    
+    y_dct = np.log(np.abs(y_dct) + 0.0001)
+    cb_dct = np.log(np.abs(cb_dct) + 0.0001)
+    cr_dct = np.log(np.abs(cr_dct) + 0.0001)
+
+    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
+    plt.subplot(1, 3, 1)
+    plt.title("DCT " + str(block) + "x" + str(block) + " (Y)")
+    plt.imshow(y_dct, "gray")
+    plt.subplot(1, 3, 2)
+    plt.title("DCT " + str(block) + "x" + str(block) + " (Cb)")
+    plt.imshow(cb_dct, "gray")
+    plt.subplot(1, 3, 3)
+    plt.title("DCT " + str(block) + "x" + str(block) + " (Cr)")
+    plt.imshow(cr_dct, "gray")
+    plt.show()
+
+    return y_dct, cb_dct, cr_dct
+
+def inv_exer(y_dct, cb_dct, cr_dct, block, flag):
+
+    y_inv = blockDct(y_dct, size=block)
+    cb_inv = blockDct(cb_dct, size=block)
+    cr_inv = blockDct(cr_dct, size=block)
+    
+    y_inv = np.log(np.abs(y_inv) + 0.0001)
+    cb_inv = np.log(np.abs(cb_inv) + 0.0001)
+    cr_inv = np.log(np.abs(cr_inv) + 0.0001)
+    
+    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
+    plt.subplot(1, 3, 1)
+    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Y)")
+    plt.imshow(y_inv, "gray")
+    plt.subplot(1, 3, 2)
+    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Cb)")
+    plt.imshow(cb_inv, "gray")
+    plt.subplot(1, 3, 3)
+    plt.title("Inverted DCT " + str(block) + "x" + str(block) + " (Cr)")
+    plt.imshow(cr_inv, "gray")
+    plt.show()
+
+    return y_inv, cb_inv, cr_inv
 
 def dct(X: np.ndarray) -> np.ndarray:
     return fft.dct(fft.dct(X, norm="ortho").T, norm="ortho").T
@@ -439,12 +486,12 @@ def main():
     cb, cr = cvSubsampler((cb,cr), ratio)
     viewYCbCr(y, cb, cr)
 
-    # Whole-image DCT
-    # plt.figure("Whole-image DCT")
-    # y = dct(y)
-    # cb = dct(cb)
-    # cr = dct(cr)
-    # viewDct(y, cb, cr)
+    #Whole-image DCT
+    plt.figure("Whole-image DCT")
+    y_dct = dct(y)
+    cb_dct = dct(cb)
+    cr_dct = dct(cr)
+    viewDct(y_dct, cb_dct, cr_dct)
 
     # Whole-image inverse DCT
     # plt.figure("Whole-image Inverse DCT")
