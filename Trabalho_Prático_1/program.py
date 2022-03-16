@@ -230,8 +230,8 @@ def exer():
     y = blockDct(y, size=block)
     cb = blockDct(cb, size=block)
     cr = blockDct(cr, size=block)
-    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
     plt.title("DCT 8x8")
+    plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
     plt.subplot(1, 3, 1)
     plt.imshow(y, "gray")
     plt.subplot(1, 3, 2)
@@ -289,11 +289,11 @@ def RGBYtoYCrCb(imgarray):
     cb = ycbcr[:,:,1]
     cr = ycbcr[:,:,2]
 
-    # for i in range(3):
-    #     plt.figure()
-    #     plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
-    #     plt.imshow(ycbcr[:,:,i], "gray")
-    #     plt.show()
+    for i in range(3):
+        plt.figure()
+        plt.title("YCbCr from RBG Image (channel " + str(i) + ")")
+        plt.imshow(ycbcr[:,:,i], "gray")
+        plt.show()
 
     inv = ycbcr
     inv[:,:,[1,2]] -= 128
@@ -303,11 +303,11 @@ def RGBYtoYCrCb(imgarray):
     rgb[rgb > 255] = 255
     rgb[rgb < 0] = 0
 
-    # rgb = rgb.astype(np.uint8)
-    # plt.figure()
-    # plt.title("RGB from YCbCr Image")
-    # plt.imshow(rgb)
-    # plt.show()
+    rgb = rgb.astype(np.uint8)
+    plt.figure()
+    plt.title("RGB from YCbCr Image")
+    plt.imshow(rgb)
+    plt.show()
 
     return y, cb, cr
 
@@ -332,7 +332,7 @@ def main():
 
     ''' exercise 1 '''
 
-    #qualityChange("imagens/logo", 50)
+    qualityChange("imagens/logo", 50)
 
 
     ''' exercise 2 '''
@@ -344,30 +344,31 @@ def main():
     ''' exercise 3 '''
 
     '''3.1 & 3.2'''
-    # colors = ["purple", "gold"]
-    # cm = colorMapping(colors[0], colors[1])
+    colors = ["purple", "gold"]
+    cm = colorMapping(colors[0], colors[1])
 
     '''3.3'''
-    # imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
+    imageColorMapping("imagens/barn_mountains", cm, colors[0], colors[1])
 
 
     '''3.4'''
 
-    # separateRGB("imagens/peppers")
+    separateRGB("imagens/peppers")
 
 
     ''' exercise 4 '''
 
-    # padding("imagens/barn_mountains.bmp")
+    padding("imagens/barn_mountains.bmp")
 
 
     ''' exercise 5 '''
 
-    # RGBYtoYCrCb("imagens/barn_mountains")
+    RGBYtoYCrCb("imagens/barn_mountains")
 
     ''' exercise 7 '''
 
     # dct("imagens/peppers")
+    exer()
 
     ''' exercise 7 '''
     exer()
