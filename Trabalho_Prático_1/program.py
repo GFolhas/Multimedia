@@ -8,7 +8,6 @@ import scipy.fftpack as fft
 import math as m
 
 
-
 Tc = np.array([[0.299, 0.587, 0.114],[-0.168736, -0.331264, 0.5],[0.5, -0.418688, -0.081312]])
 TcInverted = np.linalg.inv(Tc)
 
@@ -29,8 +28,8 @@ def qualityChange(images, value):
 def colorMapping(color1, color2):
 
     # Grey Scale
-    repeats = 5;
-    sample_number = 50; # isto é o valor default
+    repeats = 5
+    sample_number = 50 # isto é o valor default
     linGray = np.linspace(0., 1., sample_number).reshape(1, sample_number)
     linGray = np.repeat(linGray, repeats, axis=1).reshape(sample_number, repeats).T
     linGrayImg = np.zeros((repeats, sample_number, 3))
