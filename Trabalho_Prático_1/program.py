@@ -1,4 +1,3 @@
-from typing import Tuple
 from PIL import Image
 from scipy import fftpack as fft
 from scipy import ifft
@@ -8,11 +7,12 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as clr
 import numpy as np
 import cv2
-
+import math
 
 
 Tc = np.array([[0.299, 0.587, 0.114],[-0.168736, -0.331264, 0.5],[0.5, -0.418688, -0.081312]])
 TcInverted = np.linalg.inv(Tc)
+
 
 QY = np.array([
     [16, 11, 10, 16, 24,  40,  51,  61],
@@ -34,6 +34,7 @@ QC = np.array([
     [99, 99, 99, 99, 99, 99, 99, 99],
     [99, 99, 99, 99, 99, 99, 99, 99],
     [99, 99, 99, 99, 99, 99, 99, 99]])
+
 
 
 def qualityChange(images, value):
@@ -359,7 +360,7 @@ def fullDct(y, cb, cr, flag):
     return y_dct, cb_dct, cr_dct
 
 # IDCT
-## Wrong but I can't be bothered to fix it
+
 def fullIdct(ydct, cbdct, crdct, shape):
 
     dctImg = np.zeros(shape)
@@ -445,30 +446,7 @@ def idct_block(y_dct, cb_dct, cr_dct, block, flag):
     return y_inv, cb_inv, cr_inv
 
 
-# DCT functions
-def idct(X: np.ndarray) -> np.ndarray:
-    return fft.idct(fft.idct(X, norm="ortho").T, norm="ortho").T
-
-def dct(X: np.ndarray) -> np.ndarray:
-    return fft.dct(fft.dct(X, norm="ortho").T, norm="ortho").T
-
-def blockIdct(x: np.ndarray, size):
-    h, w = x.shape
-    newImg = np.zeros(x.shape)
-    for i in range(0, h, size):
-        for j in range(0, w, size):
-            newImg[i:i+size, j:j+size] = idct(x[i:i+size, j:j+size])
-    return newImg 
-
-def blockDct(x: np.ndarray, size):
-    h, w = x.shape
-    newImg = np.zeros(x.shape)
-    for i in range(0, h, size):
-        for j in range(0, w, size):
-            newImg[i:i+size, j:j+size] = dct(x[i:i+size, j:j+size])
-    return newImg       
-
-def quantizer(ycbcr: Tuple, qf: int):
+def quantizer(ycbcr: tuple, qf: int):
     y, cb, cr = ycbcr
     sf = (100 - qf) / 50 if qf >= 50 else 50 / qf
     QsY = np.round(QY * sf)
@@ -516,7 +494,7 @@ def quantizer(ycbcr: Tuple, qf: int):
 
     return qy, qcb, qcr
 
-def iQuantizer(ycbcr: Tuple, qf: int):
+def iQuantizer(ycbcr: tuple, qf: int):
     qy, qcb, qcr = ycbcr
     sf = (100 - qf) / 50 if qf >= 50 else 50 / qf
     QsY = np.round(QY * sf)
@@ -559,10 +537,89 @@ def iQuantizer(ycbcr: Tuple, qf: int):
     plt.show()
 
     return y, cb, cr
+
+
+# Exercise 9 - DPCM
+
+def DPCM(imgDCT_Q):
+
+    #DPCM 8x8
+    imgDPCM = imgDCT_Q.copy()
+    dc0 = imgDPCM[0,0]
+    nl, nc = imgDPCM.shape
+    for i in range(0, nl, 8):
+        for j in range(0, nc, 8):
+            if i == 0 and j == 0:
+                #dc0 = imgDCT_Q[i, j]
+                continue
+            dc = imgDCT_Q[i, j]
+            diff = dc - dc0
+            dc0 = dc
+            imgDPCM[i, j] = diff
+
+    fig = plt.figure(figsize=(15, 15))
+    plt.imshow(np.log(np.abs(imgDPCM) + 0.0001), "gray")
+    plt.title('DPCM')
+    plt.xticks([])
+    plt.yticks([])
+    plt.axis('image')
+
+    plt.show()
+
+
+
+def iDPCM(imgDCT_Q):
+
+    #DPCM 8x8
+    imgDPCM = imgDCT_Q.copy()
+    dc0 = imgDPCM[0,0]
+    nl, nc = imgDPCM.shape
+    for i in range(0, nl, 8):
+        for j in range(0, nc, 8):
+            if i == 0 and j == 0:
+                continue
+            dc = imgDCT_Q[i, j]
+            s = dc + dc0
+            dc0 = dc
+            imgDPCM[i, j] = s
+
+    fig = plt.figure(figsize=(15, 15))
+    plt.imshow(np.log(np.abs(imgDPCM) + 0.0001), "gray")
+    plt.title('iDPCM')
+    plt.xticks([])
+    plt.yticks([])
+    plt.axis('image')
+
+    plt.show()
+
+# DCT functions
+def idct(X: np.ndarray) -> np.ndarray:
+    return fft.idct(fft.idct(X, norm="ortho").T, norm="ortho").T
+
+def dct(X: np.ndarray) -> np.ndarray:
+    return fft.dct(fft.dct(X, norm="ortho").T, norm="ortho").T
+
+def blockIdct(x: np.ndarray, size):
+    h, w = x.shape
+    newImg = np.zeros(x.shape)
+    for i in range(0, h, size):
+        for j in range(0, w, size):
+            newImg[i:i+size, j:j+size] = idct(x[i:i+size, j:j+size])
+    return newImg 
+
+def blockDct(x: np.ndarray, size):
+    h, w = x.shape
+    newImg = np.zeros(x.shape)
+    for i in range(0, h, size):
+        for j in range(0, w, size):
+            newImg[i:i+size, j:j+size] = dct(x[i:i+size, j:j+size])
+    return newImg       
+
+   
     
 #𝐈𝐭'𝐬 𝐚 𝐰𝐢𝐥𝐝 𝐩𝐨𝐩𝐩𝐥𝐢𝐞𝐫
 
-def encoder(image):
+def encoder(image, quality):
     img = plt.imread(image +".bmp")
     shape = img.shape
     
@@ -572,20 +629,72 @@ def encoder(image):
     SubCb, SubCr = subsampling(cb, cr, (4,2,0), inter = True, flag = True)
 
     #devemos usar só o subcb e subcr na dct2, nao sei oque fazer em relação aos outros dois parametros
-    y_dct, cb_dct, cr_dct = fullDct(y, SubCb, SubCr, flag = True)
+    #y_dct, cb_dct, cr_dct = fullDct(y, SubCb, SubCr, flag = True)
     y_block, cb_block, cr_block = dct_block(y, SubCb, SubCr, block = 8, flag = True)
+
+    qy, qcb, qcr = quantizer((y_block, cb_block, cr_block), quality)
+
+    DPCM(qy)
+    DPCM(qcb)
+    DPCM(qcr)
     
     #returnamos os ycbcr do dct e a shape da imagem original
-    return  y_block, cb_block, cr_block, shape       
-        
-def decoder(y_dct, cb_dct, cr_dct, shape):
+    return  qy, qcb, qcr, shape, quality    
+    
+
+def decoder(qy, qcb, qcr, shape, quality):
+    
+    iDPCM(qy)
+    iDPCM(qcb)
+    iDPCM(qcr)
+
+    y_dct, cb_dct, cr_dct = iQuantizer((qy,qcb,qcr), quality)
     y, cb, cr = idct_block(y_dct, cb_dct, cr_dct, block = 8, flag = True)
 
     cb, cr = upsampler(cb, cr, y.shape, True, flag = True)
     rgb = YCbCrtoRGB(y, cb, cr, shape, flag = True)
     rgb = unpad(rgb, shape, flag = True)
     
-    return
+    return rgb
+
+def MSE(original, comp, height, width):
+    original = original.astype(np.float64)
+    comp = comp.astype(np.float64)
+    coef = 1 / (height * width)
+    sums = np.sum((original - comp) ** 2)
+    return coef * sums
+
+
+def RMSE(mse):
+    return math.sqrt(mse)
+
+# THIS IS ONLY GIVING ME HALF OF THE EXPECTED RESULT FOR SOME REASON
+def SNR(original, mse, height, width, flag=None):
+    if flag:
+        original = original.astype(np.float64)
+        coef =  1 / (height * width)
+        sums = np.sum(original ** 2)
+        return 10 * np.log10((coef * sums) / mse)
+    else:
+        maxsqr = np.max(original)**2
+        return 10 * np.log10(maxsqr / mse)
+
+
+# Exercise 10 - Compression
+def compression(compressed):
+    original = plt.imread("imagens/barn_mountains.bmp")
+    height, width = original[:,:,0].shape
+    mse = MSE(original, compressed, height, width)
+    rmse = RMSE(mse)
+    snr = SNR(original, mse, height, width, 1)
+    psnr = SNR(original, mse, height, width)   
+    showCompValues(mse, rmse, snr, psnr)
+
+def showCompValues(mse, rmse, snr, psnr):
+    print("MSE: " + str(mse))
+    print("RMSE: " + str(rmse))
+    print("SNR: " + str(snr))
+    print("PSNR: " + str(psnr))
 
 
 def main():
@@ -593,14 +702,16 @@ def main():
     plt.close('all')
 
     image = "imagens/barn_mountains"
-    y_dct, cb_dct, cr_dct, shape = encoder(image)
-    qy, qcb, qcr = quantizer((y_dct, cb_dct, cr_dct), 75)
-    iQuantizer((qy,qcb,qcr), 75)
+    quality = 50
+    y_dct, cb_dct, cr_dct, shape, quality = encoder(image, quality)
+    img = decoder(y_dct, cb_dct, cr_dct, shape, quality)
+    return img
 
 
 
 if __name__ == "__main__":
-    main()
+    reconstructed = main()
+    compression(reconstructed)
 
 
 
