@@ -499,16 +499,19 @@ def quantizer(ycbcr: Tuple, qf: int):
     qcr = np.round(qcr)
 
 
+    ly = np.log(np.abs(qy) + 0.0001)
+    lcb = np.log(np.abs(qcb) + 0.0001)
+    lcr = np.log(np.abs(qcr) + 0.0001)
     plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
     plt.subplot(1, 3, 1)
     plt.title("Quantized (Y) channel w/ " + str(qf) + " quality factor")
-    plt.imshow(qy, "gray")
+    plt.imshow(ly, "gray")
     plt.subplot(1, 3, 2)
     plt.title("Quantized (Cb) channel w/ " + str(qf) + " quality factor")
-    plt.imshow(qcb, "gray")
+    plt.imshow(lcb, "gray")
     plt.subplot(1, 3, 3)
     plt.title("Quantized (Cr) channel w/ " + str(qf) + " quality factor")
-    plt.imshow(qcr, "gray")
+    plt.imshow(lcr, "gray")
     plt.show()
 
     return qy, qcb, qcr
@@ -540,16 +543,19 @@ def iQuantizer(ycbcr: Tuple, qf: int):
         for j in range(0, cr.shape[1], 8):
             cr[i:i+8, j:j+8] = qcr[i:i+8, j:j+8] * QsC
 
+    ly = np.log(np.abs(qy) + 0.0001)
+    lcb = np.log(np.abs(qcb) + 0.0001)
+    lcr = np.log(np.abs(qcr) + 0.0001)
     plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
     plt.subplot(1, 3, 1)
     plt.title("iQuantized (Y) channel w/ " + str(qf) + " quality factor")
-    plt.imshow(y, "gray")
+    plt.imshow(ly, "gray")
     plt.subplot(1, 3, 2)
     plt.title("iQuantized (Cb) channel w/ " + str(qf) + " quality factor")
-    plt.imshow(cb, "gray")
+    plt.imshow(lcb, "gray")
     plt.subplot(1, 3, 3)
     plt.title("iQuantized (Cr) channel w/ " + str(qf) + " quality factor")
-    plt.imshow(cr, "gray")
+    plt.imshow(lcr, "gray")
     plt.show()
 
     return y, cb, cr
@@ -588,7 +594,6 @@ def main():
 
     image = "imagens/barn_mountains"
     y_dct, cb_dct, cr_dct, shape = encoder(image)
-    print(y_dct.shape)
     qy, qcb, qcr = quantizer((y_dct, cb_dct, cr_dct), 75)
     iQuantizer((qy,qcb,qcr), 75)
 
