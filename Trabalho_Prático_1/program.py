@@ -492,7 +492,7 @@ def quantizer(ycbcr, quality):
     plt.imshow(lcr, "gray")
     plt.show()
 
-    print("Qy: " + str(qy[0:8, 8:16][0][0]))
+    print("Qy: " + str(qy[0:8, 8:16]))
 
     return qy, qcb, qcr
 
@@ -557,9 +557,7 @@ def DPCM(imgDCT_Q, channel):
                 continue
             dc = imgDCT_Q[i, j]
             diff = dc - dc0
-            if first and channel == "y":
-                print("yDPCM: " + str(diff))
-                first = False
+            #print("yDPCM: " + str(diff))
             dc0 = dc
             imgDPCM[i, j] = diff
 
@@ -592,7 +590,7 @@ def iDPCM(imgDCT_Q, channel):
             dc = imgDCT_Q[i, j]
             s = dc + dc0
             if first and channel == "y":
-                print("yiDPCM: " + str(s))
+                #print("yiDPCM: " + str(s))
                 first = False
             dc0 = s
             imgDPCM[i, j] = s
@@ -643,18 +641,20 @@ def encoder(image, quality):
     r, g, b = separateRGB(image, flag = True)
     r, g, b = padding(r, g, b, flag = True)
     y , cb, cr, = RGBtoYCrCb(r, g, b, flag = True)
+    #print("y: " + str(y[0:8, 8:16]))
     SubCb, SubCr = subsampling(cb, cr, (4,2,0), inter = True, flag = True)
 
     #y_dct, cb_dct, cr_dct = fullDct(y, SubCb, SubCr, flag = True)
     y_block, cb_block, cr_block = dct_block(y, SubCb, SubCr, block = 8, flag = True)
-    print("y_dct: " + str(y_block[0][0]))
+    #print("y_dct: " + str(y_block[0:8, 8:16]))
+    #print("y 2 : " + str(y[0:8, 8:16]))
     qy, qcb, qcr = quantizer((y_block, cb_block, cr_block), quality)
-
 
     qy = DPCM(qy, "y")
     qcb = DPCM(qcb, "cb")
     qcr = DPCM(qcr, "cr")
 
+    print(qy[0:8, 8:16])
     #retornamos os ycbcr do dct e a shape da imagem original
     return  qy, qcb, qcr, shape, quality    
     
@@ -664,6 +664,7 @@ def decoder(qy, qcb, qcr, shape, quality):
     qy = iDPCM(qy, "y")
     qcb = iDPCM(qcb, "cb")
     qcr = iDPCM(qcr, "cr")
+    print(qy[0:8, 8:16])
 
     y_dct, cb_dct, cr_dct = iQuantizer((qy,qcb,qcr), quality)
     y, cb, cr = idct_block(y_dct, cb_dct, cr_dct, block = 8, flag = True)
@@ -701,12 +702,13 @@ def RMSE(mse):
 def compression(compressed):
     original = plt.imread("imagens/barn_mountains.bmp")
     y, cb, cr = RGBtoYCrCb(original[:,:,0], original[:,:,1], original[:,:,2], 0)
+    y2, cb2, cr2 = RGBtoYCrCb(compressed[:,:,0], compressed[:,:,1], compressed[:,:,2], 0)
     height, width = original[:,:,0].shape
     mse = MSE(original, compressed, height, width)
     rmse = RMSE(mse)
     snr = SNR(original, mse, height, width, 1)
     psnr = SNR(original, mse, height, width) 
-    plt.imshow(np.log(np.abs(y - compressed[:,:,0]) + 0.0001), "gray")
+    plt.imshow(np.abs(y - y2), "gray")
     plt.title('Diff')
     plt.show()
     showCompValues(mse, rmse, snr, psnr)
