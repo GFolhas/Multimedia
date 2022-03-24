@@ -446,11 +446,11 @@ def idct_block(y_dct, cb_dct, cr_dct, block, flag):
     return y_inv, cb_inv, cr_inv
 
 
-def quantizer(ycbcr: tuple, qf: int):
+def quantizer(ycbcr, quality):
     y, cb, cr = ycbcr
-    sf = (100 - qf) / 50 if qf >= 50 else 50 / qf
-    QsY = np.round(QY * sf)
-    QsC = np.round(QC * sf)
+    revQ = (100 - quality) / 50 if quality >= 50 else 50 / quality
+    QsY = np.round(QY * revQ)
+    QsC = np.round(QC * revQ)
 
     QsY[QsY > 255] = 255
     QsC[QsC > 255] = 255
@@ -482,15 +482,17 @@ def quantizer(ycbcr: tuple, qf: int):
     lcr = np.log(np.abs(qcr) + 0.0001)
     plt.subplots_adjust(left=0.01, right=0.99, wspace=0.1)
     plt.subplot(1, 3, 1)
-    plt.title("Quantized (Y) channel w/ " + str(qf) + " quality factor")
+    plt.title("Quantized (Y) channel w/ " + str(quality) + " quality factor")
     plt.imshow(ly, "gray")
     plt.subplot(1, 3, 2)
-    plt.title("Quantized (Cb) channel w/ " + str(qf) + " quality factor")
+    plt.title("Quantized (Cb) channel w/ " + str(quality) + " quality factor")
     plt.imshow(lcb, "gray")
     plt.subplot(1, 3, 3)
-    plt.title("Quantized (Cr) channel w/ " + str(qf) + " quality factor")
+    plt.title("Quantized (Cr) channel w/ " + str(quality) + " quality factor")
     plt.imshow(lcr, "gray")
     plt.show()
+
+    print("Qy: " + str(qy[0:8, 8:16][0][0]))
 
     return qy, qcb, qcr
 
@@ -541,8 +543,9 @@ def iQuantizer(ycbcr: tuple, qf: int):
 
 # Exercise 9 - DPCM
 
-def DPCM(imgDCT_Q):
+def DPCM(imgDCT_Q, channel):
 
+    first = True
     #DPCM 8x8
     imgDPCM = imgDCT_Q.copy()
     dc0 = imgDPCM[0,0]
@@ -550,25 +553,33 @@ def DPCM(imgDCT_Q):
     for i in range(0, nl, 8):
         for j in range(0, nc, 8):
             if i == 0 and j == 0:
-                #dc0 = imgDCT_Q[i, j]
+                #dc0 = imgDCT_Q[i, j] + 1
                 continue
             dc = imgDCT_Q[i, j]
             diff = dc - dc0
+            if first and channel == "y":
+                print("yDPCM: " + str(diff))
+                first = False
             dc0 = dc
             imgDPCM[i, j] = diff
 
     fig = plt.figure(figsize=(15, 15))
     plt.imshow(np.log(np.abs(imgDPCM) + 0.0001), "gray")
-    plt.title('DPCM')
+    plt.title('DPCM (' + channel + ')')
     plt.xticks([])
     plt.yticks([])
     plt.axis('image')
-
     plt.show()
 
+    return imgDPCM
+
+    #print("yDPCM: " + str(imgDPCM[:,0]))
 
 
-def iDPCM(imgDCT_Q):
+
+def iDPCM(imgDCT_Q, channel):
+
+    first = True
 
     #DPCM 8x8
     imgDPCM = imgDCT_Q.copy()
@@ -580,17 +591,23 @@ def iDPCM(imgDCT_Q):
                 continue
             dc = imgDCT_Q[i, j]
             s = dc + dc0
-            dc0 = dc
+            if first and channel == "y":
+                print("yiDPCM: " + str(s))
+                first = False
+            dc0 = s
             imgDPCM[i, j] = s
 
     fig = plt.figure(figsize=(15, 15))
     plt.imshow(np.log(np.abs(imgDPCM) + 0.0001), "gray")
-    plt.title('iDPCM')
+    plt.title('iDPCM (' + channel + ')')
     plt.xticks([])
     plt.yticks([])
     plt.axis('image')
-
     plt.show()
+
+    return imgDPCM
+
+    #print("yiDPCM: " + str(imgDPCM[:,0]))
 
 # DCT functions
 def idct(X: np.ndarray) -> np.ndarray:
@@ -628,25 +645,25 @@ def encoder(image, quality):
     y , cb, cr, = RGBtoYCrCb(r, g, b, flag = True)
     SubCb, SubCr = subsampling(cb, cr, (4,2,0), inter = True, flag = True)
 
-    #devemos usar só o subcb e subcr na dct2, nao sei oque fazer em relação aos outros dois parametros
     #y_dct, cb_dct, cr_dct = fullDct(y, SubCb, SubCr, flag = True)
     y_block, cb_block, cr_block = dct_block(y, SubCb, SubCr, block = 8, flag = True)
-
+    print("y_dct: " + str(y_block[0][0]))
     qy, qcb, qcr = quantizer((y_block, cb_block, cr_block), quality)
 
-    DPCM(qy)
-    DPCM(qcb)
-    DPCM(qcr)
-    
-    #returnamos os ycbcr do dct e a shape da imagem original
+
+    qy = DPCM(qy, "y")
+    qcb = DPCM(qcb, "cb")
+    qcr = DPCM(qcr, "cr")
+
+    #retornamos os ycbcr do dct e a shape da imagem original
     return  qy, qcb, qcr, shape, quality    
     
 
 def decoder(qy, qcb, qcr, shape, quality):
     
-    iDPCM(qy)
-    iDPCM(qcb)
-    iDPCM(qcr)
+    qy = iDPCM(qy, "y")
+    qcb = iDPCM(qcb, "cb")
+    qcr = iDPCM(qcr, "cr")
 
     y_dct, cb_dct, cr_dct = iQuantizer((qy,qcb,qcr), quality)
     y, cb, cr = idct_block(y_dct, cb_dct, cr_dct, block = 8, flag = True)
@@ -657,22 +674,10 @@ def decoder(qy, qcb, qcr, shape, quality):
     
     return rgb
 
-def MSE(original, comp, height, width):
-    original = original.astype(np.float64)
-    comp = comp.astype(np.float64)
-    coef = 1 / (height * width)
-    sums = np.sum((original - comp) ** 2)
-    return coef * sums
-
-
-def RMSE(mse):
-    return math.sqrt(mse)
-
-# THIS IS ONLY GIVING ME HALF OF THE EXPECTED RESULT FOR SOME REASON
 def SNR(original, mse, height, width, flag=None):
     if flag:
-        original = original.astype(np.float64)
         coef =  1 / (height * width)
+        original = original.astype(np.float64)
         sums = np.sum(original ** 2)
         return 10 * np.log10((coef * sums) / mse)
     else:
@@ -680,15 +685,32 @@ def SNR(original, mse, height, width, flag=None):
         return 10 * np.log10(maxsqr / mse)
 
 
+def MSE(original, comp, height, width):
+    original = original.astype(np.float64)
+    comp = comp.astype(np.float64)
+    c = 1 / (height * width)
+    sums = np.sum((original - comp) ** 2)
+    return c * sums
+
+
+def RMSE(mse):
+    return math.sqrt(mse)
+
+
 # Exercise 10 - Compression
 def compression(compressed):
     original = plt.imread("imagens/barn_mountains.bmp")
+    y, cb, cr = RGBtoYCrCb(original[:,:,0], original[:,:,1], original[:,:,2], 0)
     height, width = original[:,:,0].shape
     mse = MSE(original, compressed, height, width)
     rmse = RMSE(mse)
     snr = SNR(original, mse, height, width, 1)
-    psnr = SNR(original, mse, height, width)   
+    psnr = SNR(original, mse, height, width) 
+    plt.imshow(np.log(np.abs(y - compressed[:,:,0]) + 0.0001), "gray")
+    plt.title('Diff')
+    plt.show()
     showCompValues(mse, rmse, snr, psnr)
+
 
 def showCompValues(mse, rmse, snr, psnr):
     print("MSE: " + str(mse))
@@ -702,7 +724,7 @@ def main():
     plt.close('all')
 
     image = "imagens/barn_mountains"
-    quality = 50
+    quality = 75
     y_dct, cb_dct, cr_dct, shape, quality = encoder(image, quality)
     img = decoder(y_dct, cb_dct, cr_dct, shape, quality)
     return img
