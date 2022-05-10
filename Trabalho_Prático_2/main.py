@@ -13,11 +13,13 @@ import librosa
 import librosa.display
 import scipy
 import sounddevice as sd
-import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import scipy.stats as st
+import pandas
+from os import listdir, makedirs
+from os.path import isfile, isdir
 
 
 
@@ -28,7 +30,7 @@ def featureArr(file):
     print("dim ficheiro top100_features.csv original = ", nl, "x", nc)
     print()
     print(top100)
-    top100 = top100[1:, 1:(nc-1)]
+    top100 = top100[1:, 1:(nc-1)] #eliminar a 1ª linha e 1ª coluna
     nl, nc = top100.shape
     print()
     print("dim top100 data = ", nl, "x", nc)
@@ -79,8 +81,8 @@ def extractFeatures(file):
         spectral_contrast = librosa.feature.spectral_contrast(y=samples)
         spectral_flatness = librosa.feature.spectral_flatness(y=samples)
         spectral_rolloff = librosa.feature.spectral_rolloff(y=samples)
-        fundamental = librosa.yin(y=samples, fmin=20, fmax=sample_rate/2)
-        fundamental[fundamental == sample_rate/2] = 0
+        f0 = librosa.yin(y=samples, fmin=20, fmax=sample_rate/2)
+        f0[f0 == sample_rate/2] = 0
         rms = librosa.feature.rms(y=samples)
         zcr = librosa.feature.zero_crossing_rate(y=samples)
         tempo = librosa.beat.tempo(y=samples)
@@ -91,7 +93,7 @@ def extractFeatures(file):
         features[i, 105 : 154] = typicalStatistics(spectral_contrast)
         features[i, 154 : 161] = typicalStatistics(spectral_flatness)
         features[i, 161 : 168] = typicalStatistics(spectral_rolloff)
-        features[i, 168 : 175] = typicalStatistics(fundamental)
+        features[i, 168 : 175] = typicalStatistics(f0)
         features[i, 175 : 182] = typicalStatistics(rms)
         features[i, 182 : 189] = typicalStatistics(zcr)
         features[i, 189] = tempo
@@ -109,13 +111,12 @@ def typicalStatistics(array):
     max = np.max(array, axis=axis)
     min = np.min(array, axis=axis)
 
-    if axis == 0:
-        array = np.array([mean, standard_deviation, skewness, kurtosis, median, max, min])
-    else:
+    if axis != 0:
         array = np.empty((array.shape[0], 7))
         for i in range(array.shape[0]):
             array[i, :] = [mean[i], standard_deviation[i], skewness[i], kurtosis[i], median[i], max[i], min[i]]
-
+    else:
+        array = np.array([mean, standard_deviation, skewness, kurtosis, median, max, min])
     return array.flatten()
 
 
@@ -129,6 +130,87 @@ def normalization(fts):
 
 
 
+def ranking(index, matrix, dset, path):
+    dist = ['Cosine', 'Euclidean', 'Manhattan']
+    ranking = [[], [], []]
+    for i in range(3):
+        row = matrix[i][index, :]
+        indices = np.argsort(row)[1:21]
+        for j in indices:
+            ranking[i].append(dset[j].split("/")[-1])
+
+        if not isdir(path): makedirs(path)
+        file = path + dist[i] + ".txt"
+        if isfile(file): continue
+        with open(file, "w") as file:
+            for song in ranking[i]:
+                print(song, file=file)
+
+    return ranking
+
+
+
+
+def getMetadataScores(index, metadata):
+    scores = np.zeros((1, len(metadata)))
+    scores[0, index] = -1
+
+    for i in range(len(metadata)):
+        if i == index: continue
+        score = 0
+
+        if metadata['Artist'][i] == metadata['Artist'][index]: score += 1
+        if metadata['Quadrant'][i] == metadata['Quadrant'][index]: score += 1
+
+        for moodA in metadata['GenresStr'][i].split("; "):
+            for moodB in metadata['GenresStr'][index].split("; "):
+                if moodA == moodB:
+                    score += 1
+                    break
+
+        for moodA in metadata['MoodsStrSplit'][i].split("; "):
+            for moodB in metadata['MoodsStrSplit'][index].split("; "):
+                if moodA == moodB:
+                    score += 1
+                    break
+
+        scores[0, i] = score
+
+    return scores
+
+
+
+
+def mdRanking(index, metadata, dset, path):
+    scores = getMetadataScores(index, metadata)[0]
+
+    indices = np.argsort(scores)[::-1][:20]
+
+    ranking = list()
+    for i in indices:
+        print(i)
+        ranking.append(dset[i].split("/")[-1])
+
+    if path is not None:
+        if not isdir(path): makedirs(path)
+        filename = f"{path}/{dset[index].split('/')[-1]}.txt"
+        if not isfile(filename):
+            with open(filename, 'w') as file:
+                for song in ranking:
+                    print(song, file=file)
+
+    return ranking
+
+
+def precision(m, t100, md):
+    mds = set(md)
+    pr = [[i(0, m, md, mds), i(1, m, md, mds), i(2, m, md, mds)],[i(0, t100, md, mds), i(1, t100, md, mds), i(2, t100, md, mds)]]
+    return pr
+
+def i(int, arr, arr2, sets):
+    return len(set(arr[0]).intersection(sets)) / len(arr2) * 100;
+
+
 
 
 if __name__ == "__main__":
@@ -139,10 +221,29 @@ if __name__ == "__main__":
     normalizedFeats = normalizeFeatures(feats)
     fileToSave = './Features - Audio MER/top100_normalized_features.csv'
     saveFeats(fileToSave, normalizedFeats)
-    showFeats(fileToSave, normalizedFeats) """
+    showFeats(fileToSave, normalizedFeats)
 
     #2.2
     features = extractFeatures("./MER_audio_taffc_dataset/all")
     features = normalization(features)
     fileToSave = './Features - Audio MER/900audios_normalized_features.csv'
-    saveFeats(fileToSave, features)
+    saveFeats(fileToSave, features) 
+    """
+
+
+    #4.1
+    # Read metadata csv
+    p = "./MER_audio_taffc_dataset/all"
+    dset = [f"{p}/{x}" for x in sorted(listdir(p))]
+    fileName = "./MER_audio_taffc_dataset/panda_dataset_taffc_metadata.csv"
+    queries = listdir("./Queries")
+    for query in queries:
+        print("Query: ", query)
+        index = dset.index(f"{p}/{query}")
+        #featuresRanking = ranking(index, d_features, dset, path=f"featuresRankings")
+        #top100Ranking = ranking(index, d_top100, dset, path=f"top100Rankings")
+        metadataCollumns = ['Artist', 'Song', 'GenresStr', 'Quadrant', 'MoodsStrSplit']
+        metadata = pandas.read_csv(fileName, usecols=metadataCollumns)
+        metadataRanking = mdRanking(index, metadata, dset, path=f"metadataRankings")
+        #precision = precision(featuresRanking, top100Ranking, metadataRanking)
+        
